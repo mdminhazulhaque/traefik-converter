@@ -1,0 +1,78 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  namespace: prod
+spec:
+  rules:
+    # Test multiple hosts
+    - host: alice.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: common-service
+                port:
+                  name: http
+    - host: bob.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: common-service
+                port:
+                  name: http
+    - host: charlie.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: common-service
+                port:
+                  name: http
+    # Test single host
+    - host: standalone.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: standalone
+                port:
+                  name: http
+    # Test port name vs number
+    - host: port.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: port
+                port:
+                  number: 8080
+    # Test single host with multiple paths
+    - host: api.example.com
+      http:
+        paths:
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: home
+                port:
+                  name: http

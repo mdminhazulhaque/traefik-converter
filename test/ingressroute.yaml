@@ -1,0 +1,39 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: app
+  namespace: prod
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  # Test multiple hosts
+  - kind: Rule
+    match: Host(`alice.example.com`, `bob.example.com`, `charlie.example.com`)
+    services:
+    - name: common-service
+      port: http
+  # Test single host
+  - kind: Rule
+    match: Host(`standalone.example.com`)
+    services:
+    - name: standalone
+      port: http
+  # Test port name vs number
+  - kind: Rule
+    match: Host(`port.example.com`)
+    services:
+    - name: port
+      port: 8080
+  # Test single host with multiple paths
+  - kind: Rule
+    match: Host(`api.example.com`) && PathPrefix(`/auth`)
+    services:
+    - name: auth
+      port: http
+  - kind: Rule
+    match: Host(`api.example.com`) && PathPrefix(`/`)
+    services:
+    - name: home
+      port: http

@@ -9,7 +9,7 @@ function traefikToCommon(ingressRoute) {
         let match = route.match;
         
         // Extract hosts - handle multiple hosts in single Host() expression
-        let hostMatches = match.match(/Host\(\`([^`]+)\`\)/);
+        let hostMatches = match.match(/Host\(\`([^)]+?)\`\)/);
         if (!hostMatches) continue;
         
         let hostsString = hostMatches[1];
@@ -174,21 +174,34 @@ function commonToIngressRoute(common) {
     return ingressRoute;
 }
 
-$(document).ready(function () {
-    $("#btn-ingress").click(function () {
-        var ingressRouteYaml = $("#textarea-ingressroute").val();
-        var ingressRouteJSON = YAML.parse(ingressRouteYaml);
-        var common = traefikToCommon(ingressRouteJSON);
-        var ingressJSON = commonToIngress(common);
-        var ingressYaml = YAML.stringify(ingressJSON, 1000, 2);
-        $("#textarea-ingress").val(ingressYaml);
+// Browser-specific code (jQuery)
+if (typeof $ !== 'undefined') {
+    $(document).ready(function () {
+        $("#btn-ingress").click(function () {
+            var ingressRouteYaml = $("#textarea-ingressroute").val();
+            var ingressRouteJSON = YAML.parse(ingressRouteYaml);
+            var common = traefikToCommon(ingressRouteJSON);
+            var ingressJSON = commonToIngress(common);
+            var ingressYaml = YAML.stringify(ingressJSON, 1000, 2);
+            $("#textarea-ingress").val(ingressYaml);
+        });
+        $("#btn-ingressroute").click(function () {
+            var ingressYaml = $("#textarea-ingress").val();
+            var ingressJSON = YAML.parse(ingressYaml);
+            var common = ingressToCommon(ingressJSON);
+            var ingressRouteJSON = commonToIngressRoute(common);
+            var ingressRouteYaml = YAML.stringify(ingressRouteJSON, 1000, 2);
+            $("#textarea-ingressroute").val(ingressRouteYaml);
+        });
     });
-    $("#btn-ingressroute").click(function () {
-        var ingressYaml = $("#textarea-ingress").val();
-        var ingressJSON = YAML.parse(ingressYaml);
-        var common = ingressToCommon(ingressJSON);
-        var ingressRouteJSON = commonToIngressRoute(common);
-        var ingressRouteYaml = YAML.stringify(ingressRouteJSON, 1000, 2);
-        $("#textarea-ingressroute").val(ingressRouteYaml);
-    });
-});
+}
+
+// Export functions for Node.js (command line usage)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        traefikToCommon,
+        ingressToCommon,
+        commonToIngress,
+        commonToIngressRoute
+    };
+}
