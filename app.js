@@ -7,10 +7,36 @@ function traefikToCommon(ingressRoute) {
     for (let r in ingressRoute.spec.routes) {
         let route = ingressRoute.spec.routes[r];
         let match = route.match;
-        let host = match.match(/Host\(\`(.*)\`\)/)[1]; // TODO Prefix, Header etc
+        
+        // Extract hosts - handle multiple hosts in single Host() expression
+        let hostMatches = match.match(/Host\(\`([^`]+)\`\)/);
+        if (!hostMatches) continue;
+        
+        let hostsString = hostMatches[1];
+        let hosts = hostsString.split('`, `').map(h => h.trim());
+        
+        // Extract path prefix if present
+        let pathPrefix = "/"; // default path
+        let pathMatches = match.match(/PathPrefix\(\`([^`]+)\`\)/);
+        if (pathMatches) {
+            pathPrefix = pathMatches[1];
+        }
+        
         let service = route.services[0].name; // TODO Multiple services
         let port = route.services[0].port;
-        common.hosts[host] = { service: service, port: port };
+        
+        // Process each host
+        for (let host of hosts) {
+            if (!common.hosts[host]) {
+                common.hosts[host] = { paths: {} };
+            }
+            
+            // Add path to this host
+            common.hosts[host].paths[pathPrefix] = {
+                service: service,
+                port: port
+            };
+        }
     }
 
     // TODO ignore middleware and so on
@@ -27,9 +53,23 @@ function ingressToCommon(ingress) {
     for (let r in ingress.spec.rules) {
         let rule = ingress.spec.rules[r];
         let host = rule.host;
-        let service = rule.http.paths[0].backend.service.name; // TODO multiple routes
-        let port = rule.http.paths[0].backend.service.port.number;
-        common.hosts[host] = { service: service, port: port };
+        
+        if (!common.hosts[host]) {
+            common.hosts[host] = { paths: {} };
+        }
+        
+        // Process all paths for this host
+        for (let p in rule.http.paths) {
+            let pathRule = rule.http.paths[p];
+            let path = pathRule.path || "/";
+            let service = pathRule.backend.service.name;
+            let port = pathRule.backend.service.port.number;
+            
+            common.hosts[host].paths[path] = {
+                service: service,
+                port: port
+            };
+        }
     }
 
     return common;
@@ -49,25 +89,36 @@ function commonToIngress(common) {
     }
 
     for (let host in common.hosts) {
-        let service = common.hosts[host];
+        let hostConfig = common.hosts[host];
+        let paths = [];
+        
+        // Sort paths to put "/" at the end (most specific paths first)
+        let sortedPaths = Object.keys(hostConfig.paths).sort((a, b) => {
+            if (a === "/") return 1;
+            if (b === "/") return -1;
+            return b.length - a.length; // Longer paths first
+        });
+        
+        for (let path of sortedPaths) {
+            let pathConfig = hostConfig.paths[path];
+            paths.push({
+                path: path,
+                pathType: "Prefix",
+                backend: {
+                    service: {
+                        name: pathConfig.service,
+                        port: {
+                            number: pathConfig.port
+                        }
+                    }
+                }
+            });
+        }
 
         ingress.spec.rules.push({
             host: host,
             http: {
-                paths: [
-                    {
-                        path: "/", // TODO Put / at bottom
-                        pathType: "Prefix",
-                        backend: {
-                            service: {
-                                name: service.service,
-                                port: {
-                                    number: service.port
-                                }
-                            }
-                        }
-                    }
-                ]
+                paths: paths
             }
         });
     }
@@ -90,18 +141,28 @@ function commonToIngressRoute(common) {
     }
 
     for (let host in common.hosts) {
-        let service = common.hosts[host];
+        let hostConfig = common.hosts[host];
+        
+        for (let path in hostConfig.paths) {
+            let pathConfig = hostConfig.paths[path];
+            let match = `Host(\`${host}\`)`;
+            
+            // Add PathPrefix if it's not the root path
+            if (path !== "/") {
+                match += ` && PathPrefix(\`${path}\`)`;
+            }
 
-        ingressRoute.spec.routes.push({
-            kind: "Rule",
-            match: "Host(`" + host + "`)",
-            services: [
-                {
-                    name: service.service,
-                    port: service.port,
-                }
-            ]
-        });
+            ingressRoute.spec.routes.push({
+                kind: "Rule",
+                match: match,
+                services: [
+                    {
+                        name: pathConfig.service,
+                        port: pathConfig.port,
+                    }
+                ]
+            });
+        }
     }
 
     return ingressRoute;
