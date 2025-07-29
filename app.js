@@ -102,14 +102,13 @@ function commonToIngress(common) {
         for (let path of sortedPaths) {
             let pathConfig = hostConfig.paths[path];
             
-            // Handle port as either string (name) or number
+            // Handle port as either number or string (name)
             let portConfig = {};
-            if (typeof pathConfig.port === 'string') {
-                portConfig.name = pathConfig.port;
-            } else {
+            if (typeof pathConfig.port === 'number') {
                 portConfig.number = pathConfig.port;
+            } else {
+                portConfig.name = pathConfig.port;
             }
-            
             paths.push({
                 path: path,
                 pathType: "Prefix",
