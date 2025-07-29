@@ -101,15 +101,22 @@ function commonToIngress(common) {
         
         for (let path of sortedPaths) {
             let pathConfig = hostConfig.paths[path];
+            
+            // Handle port as either string (name) or number
+            let portConfig = {};
+            if (typeof pathConfig.port === 'string') {
+                portConfig.name = pathConfig.port;
+            } else {
+                portConfig.number = pathConfig.port;
+            }
+            
             paths.push({
                 path: path,
                 pathType: "Prefix",
                 backend: {
                     service: {
                         name: pathConfig.service,
-                        port: {
-                            number: pathConfig.port
-                        }
+                        port: portConfig
                     }
                 }
             });
