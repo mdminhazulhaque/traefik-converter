@@ -15,11 +15,22 @@ function traefikToCommon(ingressRoute) {
         let hostsString = hostMatches[1];
         let hosts = hostsString.split('`, `').map(h => h.trim());
         
-        // Extract path prefix if present
-        let pathPrefix = "/"; // default path
-        let pathMatches = match.match(/PathPrefix\(\`([^`]+)\`\)/);
-        if (pathMatches) {
-            pathPrefix = pathMatches[1];
+        // Extract path and path type
+        let pathValue = "/"; // default path
+        let pathType = "Prefix"; // default path type
+        
+        // Check for PathPrefix first
+        let pathPrefixMatches = match.match(/PathPrefix\(\`([^`]+)\`\)/);
+        if (pathPrefixMatches) {
+            pathValue = pathPrefixMatches[1];
+            pathType = "Prefix";
+        } else {
+            // Check for exact Path match
+            let pathMatches = match.match(/Path\(\`([^`]+)\`\)/);
+            if (pathMatches) {
+                pathValue = pathMatches[1];
+                pathType = "Exact";
+            }
         }
         
         let service = route.services[0].name; // TODO Multiple services
@@ -31,10 +42,11 @@ function traefikToCommon(ingressRoute) {
                 common.hosts[host] = { paths: {} };
             }
             
-            // Add path to this host
-            common.hosts[host].paths[pathPrefix] = {
+            // Add path to this host with path type information
+            common.hosts[host].paths[pathValue] = {
                 service: service,
-                port: port
+                port: port,
+                pathType: pathType
             };
         }
     }
@@ -63,11 +75,13 @@ function ingressToCommon(ingress) {
             let pathRule = rule.http.paths[p];
             let path = pathRule.path || "/";
             let service = pathRule.backend.service.name;
-            let port = pathRule.backend.service.port.number;
+            let port = pathRule.backend.service.port.number || pathRule.backend.service.port.name;
+            let pathType = pathRule.pathType || "Prefix"; // Default to Prefix if not specified
             
             common.hosts[host].paths[path] = {
                 service: service,
-                port: port
+                port: port,
+                pathType: pathType
             };
         }
     }
@@ -111,7 +125,7 @@ function commonToIngress(common) {
             }
             paths.push({
                 path: path,
-                pathType: "Prefix",
+                pathType: pathConfig.pathType || "Prefix",
                 backend: {
                     service: {
                         name: pathConfig.service,
@@ -153,9 +167,13 @@ function commonToIngressRoute(common) {
             let pathConfig = hostConfig.paths[path];
             let match = `Host(\`${host}\`)`;
             
-            // Add PathPrefix if it's not the root path
+            // Add Path or PathPrefix based on pathType
             if (path !== "/") {
-                match += ` && PathPrefix(\`${path}\`)`;
+                if (pathConfig.pathType === "Exact") {
+                    match += ` && Path(\`${path}\`)`;
+                } else {
+                    match += ` && PathPrefix(\`${path}\`)`;
+                }
             }
 
             ingressRoute.spec.routes.push({

@@ -62,6 +62,13 @@ spec:
     - host: api.example.com
       http:
         paths:
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: /health
+                port:
+                  name: http
           - path: /auth
             pathType: Prefix
             backend:

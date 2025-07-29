@@ -1,0 +1,29 @@
+{
+  "name": "traefik-converter",
+  "version": "1.0.0",
+  "description": "Convert objects between the types: IngressRoute (`traefik.io/v1alpha1`) and Ingress (`networking.k8s.io/v1`)",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "convert": "node test.js",
+    "traefik-to-ingress": "node test.js traefik-to-ingress",
+    "ingress-to-traefik": "node test.js ingress-to-traefik"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdminhazulhaque/traefik-converter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mdminhazulhaque/traefik-converter/issues"
+  },
+  "homepage": "https://github.com/mdminhazulhaque/traefik-converter#readme",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

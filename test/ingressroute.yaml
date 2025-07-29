@@ -28,6 +28,11 @@ spec:
       port: 8080
   # Test single host with multiple paths
   - kind: Rule
+    match: Host(`api.example.com`) && Path(`/health`)
+    services:
+    - name: health
+      port: http
+  - kind: Rule
     match: Host(`api.example.com`) && PathPrefix(`/auth`)
     services:
     - name: auth
