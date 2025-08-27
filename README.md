@@ -20,6 +20,11 @@ Convert objects between the types: IngressRoute (`traefik.io/v1alpha1`) and Ingr
 - **Port Numbers**: Numeric ports like `80`, `443`, `8080` → `port.number` in Ingress
 - **Service Mapping**: Traefik services map directly to Ingress backend services
 
+#### TLS Configuration
+- **TLS Secrets**: Certificate configuration via `spec.tls.secretName` in IngressRoute
+- **Ingress TLS**: Bidirectional conversion of TLS secrets between IngressRoute and Ingress
+- **Host Mapping**: Automatic host association for TLS certificates
+
 #### Bidirectional Conversion
 - **Traefik → Ingress**: Convert IngressRoute to Kubernetes Ingress
 - **Ingress → Traefik**: Convert Kubernetes Ingress to Traefik IngressRoute
@@ -31,12 +36,10 @@ Convert objects between the types: IngressRoute (`traefik.io/v1alpha1`) and Ingr
 - **Middlewares**: Authentication, rate limiting, headers modification
 - **Multiple Services**: Load balancing between multiple backend services
 - **Advanced Matchers**: `Header()`, `Method()`, `Query()`, `ClientIP()` expressions
-- **TLS Configuration**: Certificate management and TLS termination settings
 - **Priority/Weight**: Route prioritization and traffic splitting
 
 #### Ingress Features
 - **Annotations**: nginx, ALB, GCP-specific annotations
-- **TLS Secrets**: Certificate configuration
 - **Default Backend**: Fallback service configuration
 - **Ingress Classes**: Specific ingress controller targeting
 
@@ -159,6 +162,70 @@ spec:
             name: health-service
             port:
               name: http
+```
+
+### TLS Example
+
+#### Input (Traefik IngressRoute with TLS)
+```yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: secure-app
+  namespace: default
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`secure.example.com`)
+    services:
+    - name: secure-service
+      port: 80
+  - kind: Rule
+    match: Host(`api.secure.example.com`) && PathPrefix(`/v1`)
+    services:
+    - name: api-service
+      port: 8080
+  tls:
+    secretName: my-tls-secret
+```
+
+#### Output (Kubernetes Ingress with TLS)
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: secure-app
+  namespace: default
+spec:
+  rules:
+  - host: secure.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: secure-service
+            port:
+              number: 80
+  - host: api.secure.example.com
+    http:
+      paths:
+      - path: /v1
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 8080
+  tls:
+  - secretName: my-tls-secret
+    hosts:
+    - secure.example.com
+    - api.secure.example.com
 ```
 
 ## Contributing
