@@ -1,8 +1,15 @@
 function traefikToCommon(ingressRoute) {
-    var common = { hosts: {}, name: "", namespace: "" };
+    var common = { hosts: {}, name: "", namespace: "", tls: null };
 
     common.name = ingressRoute.metadata.name;
     common.namespace = ingressRoute.metadata.namespace;
+
+    // Extract TLS configuration if present
+    if (ingressRoute.spec.tls) {
+        common.tls = {
+            secretName: ingressRoute.spec.tls.secretName
+        };
+    }
 
     for (let r in ingressRoute.spec.routes) {
         let route = ingressRoute.spec.routes[r];
@@ -57,10 +64,19 @@ function traefikToCommon(ingressRoute) {
 }
 
 function ingressToCommon(ingress) {
-    var common = { hosts: {}, name: "", namespace: "" };
+    var common = { hosts: {}, name: "", namespace: "", tls: null };
 
     common.name = ingress.metadata.name;
     common.namespace = ingress.metadata.namespace;
+
+    // Extract TLS configuration if present
+    if (ingress.spec.tls && ingress.spec.tls.length > 0) {
+        // For simplicity, take the first TLS entry
+        common.tls = {
+            secretName: ingress.spec.tls[0].secretName,
+            hosts: ingress.spec.tls[0].hosts || []
+        };
+    }
 
     for (let r in ingress.spec.rules) {
         let rule = ingress.spec.rules[r];
@@ -143,6 +159,16 @@ function commonToIngress(common) {
         });
     }
 
+    // Add TLS configuration if present
+    if (common.tls && common.tls.secretName) {
+        // Extract all hosts from the common format
+        var allHosts = Object.keys(common.hosts);
+        ingress.spec.tls = [{
+            secretName: common.tls.secretName,
+            hosts: common.tls.hosts && common.tls.hosts.length > 0 ? common.tls.hosts : allHosts
+        }];
+    }
+
     return ingress;
 }
 
@@ -187,6 +213,13 @@ function commonToIngressRoute(common) {
                 ]
             });
         }
+    }
+
+    // Add TLS configuration if present
+    if (common.tls && common.tls.secretName) {
+        ingressRoute.spec.tls = {
+            secretName: common.tls.secretName
+        };
     }
 
     return ingressRoute;
