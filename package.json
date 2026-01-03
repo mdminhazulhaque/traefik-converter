@@ -1,6 +1,6 @@
 {
   "name": "traefik-converter",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Convert objects between the types: IngressRoute (`traefik.io/v1alpha1`) and Ingress (`networking.k8s.io/v1`)",
   "main": "app.js",
   "directories": {
@@ -16,8 +16,15 @@
     "type": "git",
     "url": "git+https://github.com/mdminhazulhaque/traefik-converter.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "traefik",
+    "kubernetes",
+    "ingress",
+    "ingressroute",
+    "converter",
+    "yaml"
+  ],
+  "author": "Md. Minhazul Haque",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/mdminhazulhaque/traefik-converter/issues"

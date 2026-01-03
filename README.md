@@ -46,7 +46,27 @@ Convert objects between the types: IngressRoute (`traefik.io/v1alpha1`) and Ingr
 ## Usage
 
 ### Web Interface
-Open `index.html` in your browser for a visual converter interface.
+
+**Simply open `index.html` in your browser - no build step required!**
+
+The web interface is a single HTML file with a beautiful, modern UI built using Tailwind CSS.
+
+#### Features
+- **🎨 Modern UI**: Beautiful shadcn/ui-inspired interface with Tailwind CSS
+- **✨ YAML Syntax Highlighting**: Real-time syntax highlighting with highlight.js
+- **📋 Copy to Clipboard**: One-click copy buttons for both IngressRoute and Ingress
+- **⚡ Real-time Conversion**: Instant bidirectional conversion between formats
+- **🎯 Error Handling**: Clear error messages with helpful notifications
+- **📱 Responsive Design**: Mobile-friendly interface that works on all devices
+- **🌐 Client-Side Only**: Pure client-side conversion - works offline, no backend required
+- **🚀 Zero Dependencies**: No npm install, no build step - just open and use!
+
+#### Web Interface Capabilities
+1. **Bidirectional Conversion**: Convert between IngressRoute and Ingress formats with a single click
+2. **Live Editing**: Edit YAML directly in the browser with real-time syntax highlighting
+3. **Instant Feedback**: Real-time error notifications and validation
+4. **Copy & Paste**: Easily copy converted YAML to your clipboard
+5. **No Setup Required**: Just open index.html in any modern browser
 
 ### Command Line Interface
 
@@ -228,6 +248,49 @@ spec:
     - api.secure.example.com
 ```
 
+## Technology Stack
+
+### Web Interface
+- **Styling**: Tailwind CSS 3 (via CDN)
+- **UI Design**: shadcn/ui-inspired components
+- **Icons**: Heroicons (SVG)
+- **Syntax Highlighting**: highlight.js
+- **YAML Parser**: js-yaml (via CDN)
+
+### Browser Requirements
+
+The web interface works with modern browsers that support:
+- ES6+ JavaScript features
+- React 18
+- Clipboard API (for copy functionality)
+- CSS Grid and Flexbox
+
+**Tested Browsers:**
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+
+**Note:** The web interface is 100% client-side - no server or backend required. All conversion happens locally in your browser.
+
+## Troubleshooting
+
+### Common Issues
+
+**Conversion fails with "undefined" errors:**
+- Ensure your YAML is properly formatted
+- Check that required fields (apiVersion, kind, metadata, spec) are present
+- Verify that host expressions use backticks: `` Host(`example.com`) ``
+
+**Copy to clipboard not working:**
+- Modern browsers require HTTPS or localhost for clipboard access
+- On older browsers, the fallback uses `document.execCommand`
+- Check browser console for specific clipboard errors
+
+**YAML not displaying correctly:**
+- Clear browser cache and reload
+- Ensure JavaScript is enabled
+- Check browser console for CDN loading errors
+
 ## Contributing
 
 Feel free to contribute by:
@@ -235,6 +298,8 @@ Feel free to contribute by:
 - Implementing middleware conversion
 - Adding annotation support for different Ingress controllers
 - Improving error handling and validation
+- Enhancing the UI/UX
+- Adding tests
 
 ## License
 

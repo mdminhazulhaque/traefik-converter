@@ -1,38 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="author" content="Md. Minhazul Haque">
-    <meta name="description" content="Traefik Converter for Ingress and IngressRoute">
-    <title>Traefik Converter</title>
-    <link rel="icon" type="image/png" href="favicon.png"/>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/yamljs/0.3.0/yaml.min.js"></script>
-    <script src="app.js"></script>
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
-        <a class="navbar-brand" href="#">
-          <img src="favicon.png" alt="" width="30" height="24">
-          Traefik Converter
-        </a>
-      <a class="btn btn-dark" href="https://github.com/mdminhazulhaque/traefik-converter"><i class="bi bi-github"></i> mdminhazulhaque/traefik-converter</a>
-    </nav>
-    <div class="container my-5">
-      <div class="row">
-        <div class="col-md-6">
-          
-          <div class="input-group mb-3">
-          <span class="form-control">IngressRoute</span>
-          <button type="button" id="btn-ingress" class="btn btn-success">To Ingress <i class="bi bi-arrow-right-square"></i></button>
-          </div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Md. Minhazul Haque">
+  <meta name="description" content="Convert between Traefik IngressRoute and Kubernetes Ingress">
+  <title>Traefik Converter - IngressRoute ⇄ Ingress</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/yamljs/0.3.0/yaml.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            border: 'hsl(214.3 31.8% 91.4%)',
+            input: 'hsl(214.3 31.8% 91.4%)',
+            ring: 'hsl(222.2 84% 4.9%)',
+            background: 'hsl(0 0% 100%)',
+            foreground: 'hsl(222.2 84% 4.9%)',
+            primary: {
+              DEFAULT: 'hsl(222.2 47.4% 11.2%)',
+              foreground: 'hsl(210 40% 98%)',
+            },
+            secondary: {
+              DEFAULT: 'hsl(210 40% 96.1%)',
+              foreground: 'hsl(222.2 47.4% 11.2%)',
+            },
+            muted: {
+              DEFAULT: 'hsl(210 40% 96.1%)',
+              foreground: 'hsl(215.4 16.3% 46.9%)',
+            },
+            accent: {
+              DEFAULT: 'hsl(210 40% 96.1%)',
+              foreground: 'hsl(222.2 47.4% 11.2%)',
+            },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    @layer utilities {
+      .shadow-elegant {
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      }
+      .shadow-elegant-lg {
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+    }
 
-          <textarea is="highlighted-code" language="yaml" class="form-control font-monospace" id="textarea-ingressroute" rows="20">
-apiVersion: traefik.io/v1alpha1
+    .hljs {
+      background: transparent !important;
+      padding: 0 !important;
+    }
+
+    .code-wrapper {
+      position: relative;
+    }
+
+    .code-textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: transparent;
+      caret-color: #abb2bf;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      z-index: 1;
+    }
+
+    .code-highlight {
+      padding: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      overflow: auto;
+      pointer-events: none;
+    }
+
+    .code-textarea::selection {
+      background: rgba(59, 130, 246, 0.3);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="sticky top-0 z-50 border-b bg-slate-900 text-white shadow-lg">
+    <div class="container mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="favicon.png" alt="Traefik Converter" width="40" height="40">
+          <div>
+            <h1 class="text-2xl font-bold text-white">
+              Traefik Converter
+            </h1>
+            <p class="text-sm text-slate-300">IngressRoute ⇄ Ingress</p>
+          </div>
+        </div>
+        <a href="https://github.com/mdminhazulhaque/traefik-converter" target="_blank" class="flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+          </svg>
+          <span>mdminhazulhaque/traefik-converter</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alert Container -->
+  <div id="alert-container" class="fixed top-20 right-4 z-50 space-y-2 max-w-sm"></div>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-8 flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left Panel - IngressRoute -->
+      <div class="bg-white rounded-lg border shadow-elegant-lg">
+        <div class="p-6 border-b">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="text-lg font-semibold">IngressRoute</h2>
+              <p class="text-sm text-muted-foreground">Traefik v1alpha1</p>
+            </div>
+            <button id="copy-left" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+        <div class="p-6 pt-4">
+          <div class="code-wrapper rounded-lg border bg-[#282c34] mb-4" style="height: 500px; overflow: auto;">
+            <textarea id="ingressroute-input" class="code-textarea" spellcheck="false">apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: app
@@ -42,138 +153,220 @@ spec:
   - web
   - websecure
   routes:
-  # Test multiple hosts
   - kind: Rule
-    match: Host(`alice.example.com`, `bob.example.com`, `charlie.example.com`)
+    match: Host(`example.com`)
     services:
-    - name: common-service
-      port: http
-  # Test single host
-  - kind: Rule
-    match: Host(`standalone.example.com`)
-    services:
-    - name: standalone
-      port: http
-  # Test port name vs number
-  - kind: Rule
-    match: Host(`port.example.com`)
-    services:
-    - name: port
-      port: 8080
-  # Test single host with multiple paths
-  - kind: Rule
-    match: Host(`api.example.com`) && Path(`/health`)
-    services:
-    - name: health
-      port: http
-  - kind: Rule
-    match: Host(`api.example.com`) && PathPrefix(`/auth`)
-    services:
-    - name: auth
-      port: http
-  - kind: Rule
-    match: Host(`api.example.com`) && PathPrefix(`/`)
-    services:
-    - name: home
-      port: http
-</textarea>
+    - name: web-service
+      port: 80</textarea>
+            <pre class="code-highlight" id="ingressroute-highlight"><code class="language-yaml"></code></pre>
+          </div>
+          <button id="convert-to-ingress" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-elegant transition-all">
+            Convert to Ingress
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </button>
         </div>
-        <div class="col-md-6">
+      </div>
 
-          <div class="input-group mb-3">
-            <span class="form-control">Ingress</span>
-            <button type="button" id="btn-ingressroute" class="btn btn-warning">To IngressRoute <i class="bi bi-arrow-left-square"></i></button>
+      <!-- Right Panel - Ingress -->
+      <div class="bg-white rounded-lg border shadow-elegant-lg">
+        <div class="p-6 border-b">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="text-lg font-semibold">Ingress</h2>
+              <p class="text-sm text-muted-foreground">Kubernetes networking.k8s.io/v1</p>
             </div>
-
-          <textarea is="highlighted-code" language="yaml" class="form-control font-monospace" id="textarea-ingress" rows="20">
-apiVersion: networking.k8s.io/v1
+            <button id="copy-right" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+        <div class="p-6 pt-4">
+          <div class="code-wrapper rounded-lg border bg-[#282c34] mb-4" style="height: 500px; overflow: auto;">
+            <textarea id="ingress-input" class="code-textarea" spellcheck="false">apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: app
   namespace: prod
 spec:
   rules:
-    # Test multiple hosts
-    - host: alice.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: common-service
-                port:
-                  name: http
-    - host: bob.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: common-service
-                port:
-                  name: http
-    - host: charlie.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: common-service
-                port:
-                  name: http
-    # Test single host
-    - host: standalone.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: standalone
-                port:
-                  name: http
-    # Test port name vs number
-    - host: port.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: port
-                port:
-                  number: 8080
-    # Test single host with multiple paths
-    - host: api.example.com
-      http:
-        paths:
-          - path: /health
-            pathType: Exact
-            backend:
-              service:
-                name: /health
-                port:
-                  name: http
-          - path: /auth
-            pathType: Prefix
-            backend:
-              service:
-                name: auth
-                port:
-                  name: http
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: home
-                port:
-                  name: http
-</textarea>
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service
+            port:
+              number: 80</textarea>
+            <pre class="code-highlight" id="ingress-highlight"><code class="language-yaml"></code></pre>
+          </div>
+          <button id="convert-to-ingressroute" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-md border border-input bg-secondary hover:bg-secondary/80 transition-colors shadow-elegant">
+            Convert to IngressRoute
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
-  </body>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto py-6 border-t bg-white/80 backdrop-blur-sm">
+    <div class="container mx-auto px-4 text-center text-sm text-muted-foreground">
+      <p>&copy; <span id="year"></span> Md. Minhazul Haque. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+  <script src="app.js"></script>
+  <script>
+    // Initialize syntax highlighting
+    function updateHighlight(inputId, highlightId) {
+      const input = document.getElementById(inputId);
+      const highlight = document.getElementById(highlightId);
+      const code = highlight.querySelector('code');
+
+      // Clear existing highlighting
+      code.className = 'language-yaml';
+      code.removeAttribute('data-highlighted');
+
+      // Set content and re-highlight
+      code.textContent = input.value;
+      hljs.highlightElement(code);
+
+      // Sync scroll
+      highlight.scrollTop = input.scrollTop;
+      highlight.scrollLeft = input.scrollLeft;
+    }
+
+    // Initialize
+    updateHighlight('ingressroute-input', 'ingressroute-highlight');
+    updateHighlight('ingress-input', 'ingress-highlight');
+
+    // Update on input
+    document.getElementById('ingressroute-input').addEventListener('input', () => {
+      updateHighlight('ingressroute-input', 'ingressroute-highlight');
+    });
+    document.getElementById('ingress-input').addEventListener('input', () => {
+      updateHighlight('ingress-input', 'ingress-highlight');
+    });
+
+    // Sync scroll
+    document.getElementById('ingressroute-input').addEventListener('scroll', (e) => {
+      const highlight = document.getElementById('ingressroute-highlight');
+      highlight.scrollTop = e.target.scrollTop;
+      highlight.scrollLeft = e.target.scrollLeft;
+    });
+    document.getElementById('ingress-input').addEventListener('scroll', (e) => {
+      const highlight = document.getElementById('ingress-highlight');
+      highlight.scrollTop = e.target.scrollTop;
+      highlight.scrollLeft = e.target.scrollLeft;
+    });
+
+    // Show alert function
+    function showAlert(message, type = 'success') {
+      const container = document.getElementById('alert-container');
+      const alert = document.createElement('div');
+      alert.className = `p-4 rounded-lg shadow-elegant-lg border ${
+        type === 'error'
+          ? 'bg-red-50 border-red-200 text-red-900'
+          : 'bg-green-50 border-green-200 text-green-900'
+      } animate-slide-in`;
+      alert.innerHTML = `
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 ${type === 'error' ? 'text-red-600' : 'text-green-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${type === 'error'
+              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+              : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>'}
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm font-medium">${message}</p>
+          </div>
+        </div>
+      `;
+      container.appendChild(alert);
+      setTimeout(() => {
+        alert.remove();
+      }, 3000);
+    }
+
+    // Copy functionality
+    async function copyToClipboard(text, button) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalHTML = button.innerHTML;
+        button.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span>Copied!</span>
+        `;
+        setTimeout(() => {
+          button.innerHTML = originalHTML;
+        }, 2000);
+        showAlert('Copied to clipboard!');
+      } catch (err) {
+        showAlert('Failed to copy', 'error');
+      }
+    }
+
+    document.getElementById('copy-left').addEventListener('click', () => {
+      copyToClipboard(document.getElementById('ingressroute-input').value, document.getElementById('copy-left'));
+    });
+
+    document.getElementById('copy-right').addEventListener('click', () => {
+      copyToClipboard(document.getElementById('ingress-input').value, document.getElementById('copy-right'));
+    });
+
+    // Conversion buttons
+    document.getElementById('convert-to-ingress').addEventListener('click', () => {
+      try {
+        const ingressRouteYaml = document.getElementById('ingressroute-input').value;
+        if (!ingressRouteYaml.trim()) {
+          showAlert('Please enter IngressRoute YAML', 'error');
+          return;
+        }
+        const ingressRouteJSON = YAML.parse(ingressRouteYaml);
+        const common = traefikToCommon(ingressRouteJSON);
+        const ingressJSON = commonToIngress(common);
+        const ingressYaml = YAML.stringify(ingressJSON, 1000, 2);
+        document.getElementById('ingress-input').value = ingressYaml;
+        updateHighlight('ingress-input', 'ingress-highlight');
+        showAlert('Successfully converted to Ingress!');
+      } catch (error) {
+        showAlert('Conversion failed: ' + error.message, 'error');
+      }
+    });
+
+    document.getElementById('convert-to-ingressroute').addEventListener('click', () => {
+      try {
+        const ingressYaml = document.getElementById('ingress-input').value;
+        if (!ingressYaml.trim()) {
+          showAlert('Please enter Ingress YAML', 'error');
+          return;
+        }
+        const ingressJSON = YAML.parse(ingressYaml);
+        const common = ingressToCommon(ingressJSON);
+        const ingressRouteJSON = commonToIngressRoute(common);
+        const ingressRouteYaml = YAML.stringify(ingressRouteJSON, 1000, 2);
+        document.getElementById('ingressroute-input').value = ingressRouteYaml;
+        updateHighlight('ingressroute-input', 'ingressroute-highlight');
+        showAlert('Successfully converted to IngressRoute!');
+      } catch (error) {
+        showAlert('Conversion failed: ' + error.message, 'error');
+      }
+    });
+  </script>
+</body>
 </html>

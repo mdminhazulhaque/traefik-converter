@@ -228,21 +228,120 @@ function commonToIngressRoute(common) {
 // Browser-specific code (jQuery)
 if (typeof $ !== 'undefined') {
     $(document).ready(function () {
-        $("#btn-ingress").click(function () {
-            var ingressRouteYaml = $("#textarea-ingressroute").val();
-            var ingressRouteJSON = YAML.parse(ingressRouteYaml);
-            var common = traefikToCommon(ingressRouteJSON);
-            var ingressJSON = commonToIngress(common);
-            var ingressYaml = YAML.stringify(ingressJSON, 1000, 2);
-            $("#textarea-ingress").val(ingressYaml);
+        // Function to show alerts
+        function showAlert(message, type = 'success') {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            const $alert = $(alertHtml);
+            $('#alert-container').append($alert);
+            setTimeout(() => $alert.alert('close'), 3000);
+        }
+
+        // Function to apply syntax highlighting
+        function applySyntaxHighlighting($textarea) {
+            if (typeof hljs !== 'undefined') {
+                const content = $textarea.val();
+                try {
+                    const highlighted = hljs.highlight(content, { language: 'yaml' }).value;
+                    // Store cursor position
+                    const cursorPos = $textarea[0].selectionStart;
+                    // Temporarily show highlighting (for visual feedback only)
+                    // Note: We keep the textarea as plaintext for editing
+                    $textarea.data('highlighted', highlighted);
+                } catch (e) {
+                    console.warn('Syntax highlighting failed:', e);
+                }
+            }
+        }
+
+        // Apply initial syntax highlighting
+        applySyntaxHighlighting($('#textarea-ingressroute'));
+        applySyntaxHighlighting($('#textarea-ingress'));
+
+        // Update syntax highlighting on input
+        $('#textarea-ingressroute, #textarea-ingress').on('input', function() {
+            applySyntaxHighlighting($(this));
         });
+
+        // Convert IngressRoute to Ingress
+        $("#btn-ingress").click(function () {
+            try {
+                var ingressRouteYaml = $("#textarea-ingressroute").val();
+                if (!ingressRouteYaml.trim()) {
+                    showAlert('Please enter IngressRoute YAML', 'danger');
+                    return;
+                }
+                var ingressRouteJSON = YAML.parse(ingressRouteYaml);
+                var common = traefikToCommon(ingressRouteJSON);
+                var ingressJSON = commonToIngress(common);
+                var ingressYaml = YAML.stringify(ingressJSON, 1000, 2);
+                $("#textarea-ingress").val(ingressYaml);
+                applySyntaxHighlighting($('#textarea-ingress'));
+                showAlert('Successfully converted to Ingress!', 'success');
+            } catch (error) {
+                showAlert('Conversion failed: ' + error.message, 'danger');
+                console.error('Conversion error:', error);
+            }
+        });
+
+        // Convert Ingress to IngressRoute
         $("#btn-ingressroute").click(function () {
-            var ingressYaml = $("#textarea-ingress").val();
-            var ingressJSON = YAML.parse(ingressYaml);
-            var common = ingressToCommon(ingressJSON);
-            var ingressRouteJSON = commonToIngressRoute(common);
-            var ingressRouteYaml = YAML.stringify(ingressRouteJSON, 1000, 2);
-            $("#textarea-ingressroute").val(ingressRouteYaml);
+            try {
+                var ingressYaml = $("#textarea-ingress").val();
+                if (!ingressYaml.trim()) {
+                    showAlert('Please enter Ingress YAML', 'danger');
+                    return;
+                }
+                var ingressJSON = YAML.parse(ingressYaml);
+                var common = ingressToCommon(ingressJSON);
+                var ingressRouteJSON = commonToIngressRoute(common);
+                var ingressRouteYaml = YAML.stringify(ingressRouteJSON, 1000, 2);
+                $("#textarea-ingressroute").val(ingressRouteYaml);
+                applySyntaxHighlighting($('#textarea-ingressroute'));
+                showAlert('Successfully converted to IngressRoute!', 'success');
+            } catch (error) {
+                showAlert('Conversion failed: ' + error.message, 'danger');
+                console.error('Conversion error:', error);
+            }
+        });
+
+        // Copy to clipboard functionality
+        $('.copy-btn').click(function() {
+            const targetId = $(this).data('target');
+            const $textarea = $('#' + targetId);
+            const text = $textarea.val();
+
+            // Use modern Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showAlert('Copied to clipboard!', 'success');
+                    // Visual feedback
+                    const $btn = $(this);
+                    const originalHtml = $btn.html();
+                    $btn.html('<i class="bi bi-check"></i> Copied!');
+                    setTimeout(() => $btn.html(originalHtml), 2000);
+                }).catch(err => {
+                    showAlert('Failed to copy: ' + err.message, 'danger');
+                });
+            } else {
+                // Fallback for older browsers
+                $textarea[0].select();
+                $textarea[0].setSelectionRange(0, 99999); // For mobile devices
+                try {
+                    document.execCommand('copy');
+                    showAlert('Copied to clipboard!', 'success');
+                    const $btn = $(this);
+                    const originalHtml = $btn.html();
+                    $btn.html('<i class="bi bi-check"></i> Copied!');
+                    setTimeout(() => $btn.html(originalHtml), 2000);
+                } catch (err) {
+                    showAlert('Failed to copy: ' + err.message, 'danger');
+                }
+            }
         });
     });
 }
